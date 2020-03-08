@@ -74,13 +74,23 @@ def show_figure(df):
     x = df['x'].tolist()
     y = df['y'].tolist()
     codes = df['code'].tolist()
+    names = [g_codes[code] for code in codes]
     fig = plt.figure(figsize=(25,25))
-    plt.subplots_adjust(left=0.04, right=1.0, top=0.97, bottom=0.03)
+    plt.subplots_adjust(left=0.04, right=0.97, top=0.97, bottom=0.05)
     ax1 = fig.add_subplot(111)
     ax1.set_title('Stock Price Info')
     plt.xlabel('X = close/highest')
     plt.ylabel('Y = lowest/close')
-    plt.scatter(x,y,s=5)
+    c = ['g' if name.startswith('*ST') else 'b' if name.startswith('ST') else 'r'  for name in names]
+    m = ['*' if name.startswith('*ST') else '+' if name.startswith('ST') else 'o'  for name in names]
+    import matplotlib.markers as mmarkers
+    paths = []
+    for marker in m:
+        marker_obj = mmarkers.MarkerStyle(marker)
+        path = marker_obj.get_path().transformed(marker_obj.get_transform())
+        paths.append(path)
+    scatter=plt.scatter(x,y,c=c, s=20)
+    scatter.set_paths(paths) 
     font = {'family':'WenQuanYi Micro Hei','weight':'bold','size':8}
     matplotlib.rc("font",**font)
     parts = 20
@@ -120,6 +130,10 @@ def show_figure(df):
         x_fanwei = (x_max - x_min)/10
         y_fanwei = (x_max - y_min)/10
         if event.key=='pageup':
+            if x_fanwei > x_min:  x_fanwei = x_min
+            if x_max + x_fanwei > 1.0: x_fanwei = 1.0 - x_max
+            if y_fanwei > y_min:  y_fanwei = y_min
+            if y_max + y_fanwei > 1.0: y_fanwei = 1.0 - y_max
             axtemp.set(xlim=(x_min-x_fanwei, x_max+x_fanwei),ylim=(y_min-y_fanwei,y_max+y_fanwei))
         elif event.key == 'pagedown':
             axtemp.set(xlim=(x_min+x_fanwei, x_max-x_fanwei),ylim=(y_min+y_fanwei,y_max-y_fanwei))
@@ -127,12 +141,22 @@ def show_figure(df):
             if x_fanwei > x_min: x_fanwei = x_min
             axtemp.set(xlim=(x_min-x_fanwei, x_max-x_fanwei))
         elif event.key == 'right':
+            if x_max+x_fanwei > 1.0: x_fanwei = 1.0-x_max
             axtemp.set(xlim=(x_min+x_fanwei, x_max+x_fanwei))
         elif event.key=='up':
             if y_fanwei > y_min: y_fanwei = y_min
             axtemp.set(ylim=(y_min-y_fanwei,y_max-y_fanwei))
         elif event.key == 'down':
+            if y_max+y_fanwei > 1.0: y_fanwei = 1.0 - y_max
             axtemp.set(ylim=(y_min+y_fanwei,y_max+y_fanwei))
+        elif event.key == 'home':
+            axtemp.set(xlim=(0, x_max-x_min))
+        elif event.key == 'end':
+            axtemp.set(xlim=(1-x_max+x_min, 1))
+        elif event.key == 'ctrl+home':
+            axtemp.set(ylim=(0, y_max-y_min))
+        elif event.key == 'ctrl+end':
+            axtemp.set(ylim=(1-y_max+y_min, 1))
         elif event.key == 'enter':
             for n in range(len(x)):
                 if n in noted: continue
@@ -144,6 +168,9 @@ def show_figure(df):
                 noted.append(n)
         elif event.key == 'backspace':
            axtemp.set(xlim=(0,1),ylim=(0,1))
+        elif event.key in ['1','2','3','4','5','6','7','8','9']:
+           times = int(event.key)
+           axtemp.set(xlim=(0,1.0/times),ylim=(1.0-1.0/times,1.0))  
         else:
             return  
         fig.canvas.draw_idle()
